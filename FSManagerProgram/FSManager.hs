@@ -39,5 +39,3 @@ tuple_Fourth (_, _, _,a) = a
 --Functions for return an element of a list with an index
 getListElement pIndex list = list !! pIndex
 
-
---group function 
