@@ -37,7 +37,7 @@
   -- Cons add at head,  Cons constructor here. cons is another word for ':'
 -}
 
-module LinkedList where 
+module LinkedList where
 data LinkedList a = EmptyNode							--Declare the initial state of the list as null
 					| Cons a (LinkedList a)				--Adding an element at the start of the list
 					deriving (Show, Read, Eq, Ord)      --Adding haskell interfaces as qualities
