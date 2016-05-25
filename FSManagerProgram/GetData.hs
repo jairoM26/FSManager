@@ -23,7 +23,7 @@ tupleGetThird' :: (pFirst, pSecond, pThird) -> pThird
 tupleGetThird' (_, _, z) = z  
 
 {-
- --The functions that have four parameters are used to get the data of the groups
+ --The functions that have four parameters are used to get the data of the users
 -}
 tupleGetFirst :: (pFirst, pSecond, pThird, pFourth) -> pFirst  
 tupleGetFirst (x, _, _,_) = x  
@@ -42,3 +42,29 @@ tupleGetFourth (_, _, _,a) = a
 -----------------------------------------------------------------------------------------------------------------------------------
 --Functions for return an element of a list with an index
 getListElement pIndex list = list !! pIndex
+
+-----------------------------------------------------------------------------------------------------------------------------------
+										-- FUNCTION FOR GETTING DATA --
+-----------------------------------------------------------------------------------------------------------------------------------
+generateNamesGroupList :: [(String,Int,[String])]->[String]
+generateNamesGroupList [] = [""]
+generateNamesGroupList pGroupList =  tupleGetFirst' (head pGroupList) : generateNamesGroupList (tail pGroupList)
+
+generateAssocUserGroupString :: [String]->String
+generateAssocUserGroupString [] = ""
+generateAssocUserGroupString x =  (head x) ++ ", " ++ (generateAssocUserGroupString (tail x))
+
+addspaces :: (Int,String) -> String
+addspaces (size,spaces) = do
+     if ( size==0)
+          then spaces
+     else do
+          addspaces(size-1,spaces ++ " ")
+
+generateNamesUserList :: [(String,Int,String,[String])]->[String]
+generateNamesUserList [] = []
+generateNamesUserList pUserList =  tupleGetFirst (head pUserList) : generateNamesUserList (tail pUserList)
+
+generateSecondaryGroupNames :: [String]->String
+generateSecondaryGroupNames [] = ""
+generateSecondaryGroupNames x =  (head x) ++ ", " ++ (generateSecondaryGroupNames (tail x))
