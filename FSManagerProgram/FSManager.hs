@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-tabs #-}
 -- @author: Jairo Méndez 
 -- @author: Cristian Castillo
 -- @date: 18 - 05 -2016
@@ -5,8 +6,11 @@
 -- @brief: A virtual file system manager
 
 import Control.Monad  -- library that control the secuense of the program, like the command forever
-
 import Data.List.Split-- library split
+import ShowGroups
+import ShowUsers
+import AddGroups
+import AddUsers
 
 -----------------------------------------------------------------------------------------------------------------
 									-- IMPORT MY DATA STRUCTURE --
@@ -16,7 +20,6 @@ import LinkedList
 									-- IMPORT MY GET DATA FUNCTIONS --
 -----------------------------------------------------------------------------------------------------------------
 import GetData
-
 -----------------------------------------------------------------------------------------------------------------
 									-- IMPLEMENTING FSMANAGER LOGIC --
 -----------------------------------------------------------------------------------------------------------------
@@ -25,7 +28,6 @@ import GetData
      Group Info = (groupName, GroupID, UserAssocList)   
      UserInfo = (userName, UID, primaryGroup, SecondGroupList) 
 -}
-
 {-
  --Main functions
  --Calls tha principal function with initial parameters
@@ -49,16 +51,15 @@ fsManager pGeneralList = do
      putStrLn (tupleGetThird' pGeneralList)
      putStr ( "root$root: ")
      inputInstruction <- getLine --Get the input instrction
+     --putStrLn (show (splitOn "/" inputInstruction))
      {-
         --Send the input instruction to another function who will decodify and verify the input, and the apply the correct action
         --splitOn " " inputInstruction generate a list, make a split in every " " in the input
         --tupleGetFirst' pGeneralList = List of groups
         --tupleGetSecond' pGeneralList = List of users
      -}
-     fsManager (input (tupleGetFirst' pGeneralList, tupleGetSecond' pGeneralList, ( split ( dropDelims . dropBlanks $ oneOf " ")  inputInstruction),inputInstruction))
-     
-
-    
+     fsManager (input (tupleGetFirst' pGeneralList, tupleGetSecond' pGeneralList, (splitOn  " " inputInstruction),inputInstruction))
+        
 --Check what is the first command
 --According to the first command calls function that will apply that command
 {-
@@ -67,19 +68,11 @@ fsManager pGeneralList = do
 input:: ([(String,Int,[String])],[(String,Int,String,[String])],[[Char]],String)-> ([(String,Int,[String])], [(String,Int,String,[String])],String)
 input (pGroupList,pUserList,[],y)= (pGroupList,pUserList,"")
 input (pGroupList,pUserList,x:xs,y)
-    
-     | x=="groupadd"  = groupadd (pGroupList,pUserList,xs,y)
-     | x=="useradd"= useradd (pGroupList,pUserList,xs,y)
-     | x=="show"= showatributes (pGroupList,pUserList,xs,y)
-     | x=="finger" = showUsersAux (pGroupList,pUserList,pUserList,"",xs)
-     | otherwise = (pGroupList,pUserList, "Couldn't  find: " ++ x,y)
-{-
-     
-     
-     | x=="finger" = showuseraccount (xs,y)
-     | x=="userdel" = userdel (xs,y)
-     | x=="groupdel" = groupdel (xs,y)
--}
+      | x=="groupadd"  = groupadd (pGroupList,pUserList,xs,y)
+      | x=="useradd"= useradd (pGroupList,pUserList,xs,y)
+      | x=="show"= showatributes (pGroupList,pUserList,xs,y)
+      {-| x=="finger" = showUsersAux (pGroupList,pUserList,pUserList,"",xs)-}
+      | otherwise = (pGroupList,pUserList, "Couldn't  find: " ++ x)
 
 --Check that exist the command -g
 usermod::  ([(String,Int,[String])],[(String,Int,String,[String])],[[Char]],String)-> ([(String,Int,[String])], [(String,Int,String,[String])],String)
@@ -103,7 +96,6 @@ userdel (x:xs,y)
 groupdel:: ([[Char]],String) -> String
 groupdel ([],y) = "Couldn't remove the  group , instruction incomplete,: expected groupName"
 groupdel (x:xs,y)
-
      | (length xs>=1) = " Couldn't remove the group with: " ++ y -- If after the command are more information o text, 
      --the syntax is incorrect
      {-| findgroup x =  "Removing  groupName: " ++ x  -- If the group exist, it remove the group-}
@@ -123,122 +115,3 @@ showatributes (pGroupList,pUserList,x:xs,y)
      | x=="groups" = showgroups (pGroupList,pUserList)
 
      | otherwise = (pGroupList,pUserList," Couldn't find:  " ++ x) --If the group exist doesn't add the new group
-
---The following  funtion will be used to  show all the existent user groups in the
---system with their corresponding attributes
-showgroups:: ([(String,Int,[String])],[(String,Int,String,[String])])->([(String,Int,[String])],[(String,Int,String,[String])],String)
-showgroups (pGroupList,pUserList) = showgroupsAux (pGroupList,pGroupList,pUserList,"GroupName                          GID           AssociatedUsers " ++ "\n")
-
-showgroupsAux :: ([(String,Int,[String])],[(String,Int,[String])],[(String,Int,String,[String])],String)->([(String,Int,[String])],[(String,Int,String,[String])],String)
-showgroupsAux  ([],pList,pUserList,pMessage) = (pList,pUserList,pMessage)
-showgroupsAux (x:pGroupList,pList, pUserList, pMessage )= showgroupsAux (pGroupList,pList, pUserList, pMessage ++ tupleGetFirst' x ++ addspaces( 36- length(tupleGetFirst' x),"") ++ show(tupleGetSecond' x) ++ addspaces( 10,"") ++ generateAssocUserGroupString (tupleGetThird' x) ++  "\n")
-
-
---The following  funtion will be used to  show all the existent user groups in the
---system with their corresponding attributes
-showUsers:: ([(String,Int,[String])],[(String,Int,String,[String])])->([(String,Int,[String])],[(String,Int,String,[String])],String)
-showUsers (pGroupList,pUserList) = showUsersAux (pGroupList,pUserList,pUserList,"UserName                            UID           primaryGroup                        SecondaryGroup                      HomeDirectory" ++ "\n")
-
-showUsersAux :: ([(String,Int,[String])],[(String,Int,String, [String])],[(String,Int,String,[String])],String)->([(String,Int,[String])],[(String,Int,String,[String])],String)
-showUsersAux  (pGroupList,[],pUserList,pMessage) = (pGroupList,pUserList,pMessage)
-showUsersAux (pGroupList,x:pList, pUserList, pMessage )= showUsersAux (pGroupList,pList, pUserList, pMessage ++ tupleGetFirst x ++ addspaces(36- length(tupleGetFirst x),"") ++ show(tupleGetSecond x)   ++ addspaces( 10,"") ++ (tupleGetThird x) ++ addspaces( 36- length(tupleGetThird x),"") ++ generateSecondaryGroupNames (tupleGetFourth x)  ++ addspaces( 36- length(generateSecondaryGroupNames (tupleGetFourth x)),"") ++ "/home/" ++ tupleGetFirst x ++ "\n")
-
-
-{-}
---The following  funtion will be used to  show all the existent user users in the
---system with their corresponding attributes
-showusers:: ([(String,Int,[String])],[(String,Int,String,[String])])->([(String,Int,[String])],[(String,Int,String,[String])],String)
-showusers (pGroupList,pUserList) = 
--}
---The following  funtion will be used to  show the details of a specific user account
-showuseraccount::([(String,Int,[String])],[(String,Int,String, [String])],[(String,Int,String,[String])],String,[[Char]],String)->([(String,Int,[String])],[(String,Int,String,[String])],String)
-
-showuseraccount (pGroupList,x:pList, pUserList, pMessage ,[],y) = " Couldn't show the user account, instruction incomplete, expected: name"
-showuseraccount  (pGroupList,[],pUserList,pMessage,UserName,y) = (pGroupList,pUserList,pMessage)
-showuseraccount (pGroupList,x:pList, pUserList, pMessage ,usn:UserName,y)
-	| (length UserName>=1) = (pGroupList,pUserList,pMessage++" Couldn't  show the user account with: " ++ y) -- If after the name are more information o text, --the syntax is incorrect 
-	| (finduser(pUserList,usn)==False) =   showuseraccount(pGroupList,pList, pUserList, pMessage ++" Couldn't   find the user account: " ++ x ,[usn],y)-- If the user doesn't exist
-
-	| otherwise= showuseraccount (pGroupList,pList, pUserList, pMessage ++ tupleGetFirst x ++ addspaces(36- length(tupleGetFirst x),"") ++ show(tupleGetSecond x)   ++ addspaces( 10,"") ++ (tupleGetThird x) ++ addspaces( 36- length(tupleGetThird x),"") ++ generateSecondaryGroupNames (tupleGetFourth x)  ++ addspaces( 36- length(generateSecondaryGroupNames (tupleGetFourth x)),"") ++ "/home/" ++ tupleGetFirst x ++ "\n",[usn],y)
-
-
-     
-   
-    
-    
-
---Add a new group
-groupadd:: ([(String,Int,[String])],[(String,Int,String,[String])],[[Char]],String)-> ([(String,Int,[String])], [(String,Int,String,[String])],String)
-groupadd (pGroupList,pUserList,[],y) = (pGroupList,pUserList," Couldn't create group, expected: groupName")
-groupadd (pGroupList,pUserList,x:xs,y)
-     
-     | (length xs>=1) = (pGroupList,pUserList," Couldn't create group with: " ++ y) -- If after the name are more information o text, 
-     --the syntax is incorrect
-     | findgroup (pGroupList,x) = (pGroupList,pUserList," Couldn't add, existing group  " )--If the group exist doesn't add the new group
-     | otherwise = if (length pGroupList) == 0
-                    then (pGroupList ++ [(x, 1000, [])],pUserList,"  group added: " ++ "  groupName: "  ++ x)
-                    else do (pGroupList ++ [(x, (tupleGetSecond' (last pGroupList)) + 1, [])],pUserList,"  group added: " ++ "  groupName: "  ++ x)--If the group doesn't exist add the  new group
-
---Check that exist the command -g
-useradd:: ([(String,Int,[String])],[(String,Int,String,[String])],[[Char]],String)-> ([(String,Int,[String])], [(String,Int,String,[String])],String)
-useradd (pGroupList,pUserList,[],y)= (pGroupList,pUserList," Couldn't create user, instruction incomplete, expected : -g primaryGroup userName")
-useradd (pGroupList,pUserList,x:xs,y)
-     
-     | x=="-g" = useraddgroup (pGroupList,pUserList,xs,y)
-
-     | otherwise =  (pGroupList,pUserList,y ++ " : Couldn't create user, expected -g  " )
-   
-    
---Check the name of primary Group
-useraddgroup:: ([(String,Int,[String])],[(String,Int,String,[String])],[[Char]],String)-> ([(String,Int,[String])], [(String,Int,String,[String])],String)
-useraddgroup (pGroupList,pUserList,[],y) =  (pGroupList,pUserList," Couldn't create user, instruction incomplete, expected: name primary group and UserName")
-useraddgroup (pGroupList,pUserList,x:xs,y)
-     | x=="" = useraddgroup (pGroupList,pUserList,xs,y)--if the element is empty or a space call recursively the same funtion
-     | findgroup (pGroupList,x) =  useraddgroupAux (pGroupList,pUserList,("",999,x,[]),xs)--If the group exist so, add the group and call the funtion 
-     --useradd_secondgroup to check the next command
-     | otherwise =  (pGroupList,pUserList,"Couldn't find: " ++ x)--If the group doesn't exist so can't add the user
-
-useraddgroupAux :: ([(String,Int,[String])],[(String,Int,String,[String])],(String,Int,String,[String]),[[Char]])-> ([(String,Int,[String])], [(String,Int,String,[String])],String)
-useraddgroupAux (pGroupList,pUserList,userToAdd,[]) = (pGroupList,pUserList, "Error created user, args missings")
-useraddgroupAux (pGroupList,pUserList,userToAdd,x:xs)
-	
-    | (x=="-G")   && null xs = (pGroupList,pUserList," Couldn't create user, expected   SeconfGroupName")--If the command was -G and the 
-     --list is empty, the instruction is incomplete
-	| (x=="-G")  && (length xs < 1) = (pGroupList,pUserList," Couldn't create user, expected   UserName")--If the command was -G and is 
-     --only the SecondGroupName, or only the userName, the instruction is incomplete
-    | (x == "-G") && (length xs > 1) = useraddSecondGroup(pGroupList,pUserList,userToAdd,xs)
-    | null xs = addUserName (pGroupList,pUserList,userToAdd,x)--If are one element in the list, that element is the UserName
-    | otherwise = (pGroupList,pUserList,"Couldn't find: " ++ x)--If the group doesn't exist , can't add the user
-
-useraddSecondGroup :: ([(String,Int,[String])],[(String,Int,String,[String])],(String,Int,String,[String]),[[Char]])-> ([(String,Int,[String])], [(String,Int,String,[String])],String)
-useraddSecondGroup (pGroupList,pUserList,userToAdd,[]) = (pGroupList,pUserList, "Error created user, args missings")
-useraddSecondGroup (pGroupList,pUserList,userToAdd,x:xs)
-	
-	| null xs  = addUserName (pGroupList,pUserList,userToAdd,x)
-	| findgroup (pGroupList, x) = useraddSecondGroup(pGroupList,pUserList, ("",999, tupleGetThird userToAdd, (tupleGetFourth userToAdd) ++ [x]), xs)
-	| otherwise =  (pGroupList,pUserList,"Couldn't find: " ++ x)--If the group doesn't exist so can't add the user
-
-addUserName :: ([(String,Int,[String])],[(String,Int,String,[String])],(String,Int,String,[String]),String)-> ([(String,Int,[String])], [(String,Int,String,[String])],String)
-addUserName (pGroupList,pUserList,userToAdd,x)
-	| finduser (pUserList, x) = (pGroupList,pUserList," Couldn't add, existing User")-- If the user exist, doesn't add the new user
-	| otherwise = if (length pUserList) == 0
-     				then  (pGroupList,pUserList ++ [((tupleGetFirst userToAdd) ++ x, 1000, tupleGetThird userToAdd, tupleGetFourth userToAdd)],"User added: " ++ "UserName: " ++ x ++ show(length(tupleGetFourth userToAdd))) -- If the user doesn't exist, add the ner user
-					else do  (pGroupList,pUserList ++ [((tupleGetFirst userToAdd) ++ x, (tupleGetSecond (last pUserList)) + 1, tupleGetThird userToAdd, tupleGetFourth userToAdd)],"User added: " ++ "UserName: " ++ x ++ show(length(tupleGetFourth userToAdd))) -- If the user doesn't exist, add the ner user
-     				--else do (pGroupList,pUserList ++ [((tupleGetFirst userToAdd) ++ x, (tupleGetSecond' (last pUserList)) + 1, tupleGetThird userToAdd, tupleGetFourth userToAdd)],"User added: " ++ "UserName: " ++ x)
-
-{-
-addusersToGroups :: ([(String,Int,[String])], [(String,Int,String,[String])],String)-> ([(String,Int,[String])], [(String,Int,String,[String])],String)
-addusersToGroups -}
---Check if the user exist
-finduser:: ([(String,Int,String,[String])],String) -> Bool
-finduser (pUserList, x)
-     | null pUserList = False
-     | (x `elem` (generateNamesUserList pUserList)) =  True
-     | otherwise = False
-
----Check if the group exist
-findgroup:: ([(String,Int,[String])],String) -> Bool
-findgroup (pGroupList, x)
-     | null pGroupList = False
-     | (x `elem` (generateNamesGroupList pGroupList)) =  True
-     | otherwise = False
