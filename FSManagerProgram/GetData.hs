@@ -23,9 +23,16 @@ module GetData
 ,generateSecondaryGroupNames
 ,generatePathStorageDev
 ,generateVGNames
+,generateLVNames
 ,verifyName
 ,getStorageSize
+,getLVSize
+,getVGFreeSize
 ,getDevice
+,getVG
+,getLV
+,verifyNumber
+,verifyPath
 ) where 
 
 import Data.Tuple.Select
@@ -99,6 +106,11 @@ generateVGNames :: [(String,[String],[String],Int,Int)]->[String]
 generateVGNames [] = []
 generateVGNames pVGList = sel1 (head pVGList) : generateVGNames (tail pVGList)
 
+generateLVNames :: [(String,Int,Bool)]->[String]
+generateLVNames [] = []
+generateLVNames pLVList = sel1 (head pLVList) : generateLVNames (tail pLVList)
+
+
 verifyName :: String -> Bool
 verifyName [] = True
 verifyName (x:name) 
@@ -112,8 +124,41 @@ getStorageSize (elem:pStorageList,storageToFind)
 										then 1024*(sel2 elem)
 										else (sel2 elem)
 	| otherwise = getStorageSize (pStorageList,storageToFind)
+
+getVGFreeSize :: ([(String,[String],[String],Int,Int)],String) -> Int
+getVGFreeSize ([],vgName) = 0
+getVGFreeSize (tmp:pVGList,vgName)
+	| vgName == sel1 tmp = sel5 tmp
+	|otherwise = getVGFreeSize (pVGList,vgName)
+
+getLVSize :: ([(String,Int,Bool)],String)-> Int
+getLVSize ([],lvName) = 0
+getLVSize (tmp:lvList,lvName)
+	| lvName == sel1 tmp = (sel2 tmp)
+	| otherwise = getLVSize (lvList,lvName)
 	
 getDevice :: ([(String,Int,String,[Bool])],String) -> (String,Int,String,[Bool])
 getDevice (tmp:storageList,dev)
 	| dev == (sel1 tmp) = tmp
 	| otherwise = getDevice (storageList,dev)
+
+getVG :: ([(String,[String],[String],Int,Int)],String) -> (String,[String],[String],Int,Int)
+getVG (tmp:pVGList,vg)
+	| vg == (sel1 tmp) = tmp
+	| otherwise = getVG (pVGList,vg)
+
+getLV ::([(String,Int,Bool)],String) -> (String,Int,Bool)
+getLV (tmp:pLVList,lv) 
+	| lv == sel1 (tmp) = tmp
+	|otherwise = getLV(pLVList,lv)
+
+verifyNumber :: String -> Bool
+verifyNumber [] = True
+verifyNumber (x:numberList)
+	| ( x `elem` ['0'..'9'] )= verifyNumber numberList
+	| otherwise = False
+
+verifyPath :: String -> Bool
+verifyPath pathList = if (take 5 pathList) == "/dev/"
+						then True
+						else False
