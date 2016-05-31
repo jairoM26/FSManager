@@ -31,6 +31,8 @@ module GetData
 ,getDevice
 ,getVG
 ,getLV
+,getDir
+,getAssocDir
 ,verifyNumber
 ,verifyPath
 ) where 
@@ -151,6 +153,18 @@ getLV ::([(String,Int,Bool)],String) -> (String,Int,Bool)
 getLV (tmp:pLVList,lv) 
 	| lv == sel1 (tmp) = tmp
 	|otherwise = getLV(pLVList,lv)
+
+getDir :: ([(String,String,[String],[String],String,String,String,String)],String)->(String,String,[String],[String],String,String,String,String)
+getDir (tmp:directoryList,dirName)
+	| dirName == sel1 tmp = tmp
+	| otherwise = getDir (directoryList,dirName)
+
+
+getAssocDir :: ([(String,String,[String],[String],String,String,String,String)],String)->[String]
+getAssocDir ([],dirName) = []
+getAssocDir (tmpDir:directoryList, dirName)
+	| dirName == sel1 tmpDir = sel3 tmpDir
+	| otherwise = getAssocDir (directoryList,dirName)
 
 verifyNumber :: String -> Bool
 verifyNumber [] = True

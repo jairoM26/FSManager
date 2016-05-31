@@ -57,32 +57,62 @@ makeStorageManagedByLVM (tmpElement:pStorageList, tmpStorageList,storageToManage
 	-@param pVolumeGroups = list of VG
 	-@param pLVolume = list of logival volume
 	-@param pFileSystList = list of file systems
+	-@param directoriesList = list of directories
+	-@param fileList = list of files
 	-@param xs = list with the instruction => x = element of the instruction
 -}
-vgcreate :: ([(String,Int,[String])],[(String,Int,String,[String])],[(String,Int,String,[Bool])],[(String,[String],[String],Int,Int)],[(String,Int,Bool)],[(String,String,Char,[String],Int)],[(String,String,[String],[String],String,String,String,Bool)],[(String,String,String,String,String,String)],[[Char]],String)->([(String,Int,[String])],[(String,Int,String,[String])],([(String,Int,String,[Bool])],[(String,[String],[String],Int,Int)],[(String,Int,Bool)]),([(String,String,Char,[String],Int)],[(String,String,[String],[String],String,String,String,Bool)],[(String,String,String,String,String,String)]),String)
+vgcreate :: ([(String,Int,[String])],[(String,Int,String,[String])],[(String,Int,String,[Bool])],[(String,[String],[String],Int,Int)],[(String,Int,Bool)],[(String,String,Char,[String],Int,String)],[(String,String,[String],[String],String,String,String,String)],[(String,String,String,String,String,String)],[[Char]],String)->([(String,Int,[String])],[(String,Int,String,[String])],([(String,Int,String,[Bool])],[(String,[String],[String],Int,Int)],[(String,Int,Bool)]),([(String,String,Char,[String],Int,String)],[(String,String,[String],[String],String,String,String,String)],[(String,String,String,String,String,String)]),String)
 vgcreate (pGroupList,pUserList,pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,[],y) = (pGroupList,pUserList,(pStorageList,pVolumeGroupList,pLVolume),(pFileSystList,directoriesList,filesList), "Couldn't create Volume Group, expected: Volume Group name")
 vgcreate (pGroupList,pUserList,pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,x:xs,y)
 	| x == "" = vgcreate (pGroupList,pUserList,pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,xs,y)
+	--Verify the vg name, and then call vgcreateAux with [] wich is the list of all the storage devices managed by LVM
+	--x = vgName
 	| (verifyName x) = vgcreateAux (pGroupList,pUserList,pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,x,[],xs,y)
 	| otherwise = (pGroupList,pUserList,(pStorageList,pVolumeGroupList,pLVolume),(pFileSystList,directoriesList,filesList), "Couldn't  find: " ++ x)
 
 
 {-
+	-@brief This function create a volume group
+	-@param pGroupList = list of all the group created
+	-@param pUserList = list of users
+	-@param pStorageLIst = list of storages
+	-@param pVolumeGroups = list of VG
+	-@param pLVolume = list of logival volume
+	-@param pFileSystList = list of file systems
+	-@param directoriesList = list of directories
+	-@param fileList = list of files
+	-@param physicalVolumeList final list of all the storage devices managed by LVM
+	-@param xs = list with the instruction => x = element of the instruction
 -}
-vgcreateAux :: ([(String,Int,[String])],[(String,Int,String,[String])],[(String,Int,String,[Bool])],[(String,[String],[String],Int,Int)],[(String,Int,Bool)],[(String,String,Char,[String],Int)],[(String,String,[String],[String],String,String,String,Bool)],[(String,String,String,String,String,String)],String,[String],[[Char]],String)->([(String,Int,[String])],[(String,Int,String,[String])],([(String,Int,String,[Bool])],[(String,[String],[String],Int,Int)],[(String,Int,Bool)]),([(String,String,Char,[String],Int)],[(String,String,[String],[String],String,String,String,Bool)],[(String,String,String,String,String,String)]),String)
+vgcreateAux :: ([(String,Int,[String])],[(String,Int,String,[String])],[(String,Int,String,[Bool])],[(String,[String],[String],Int,Int)],[(String,Int,Bool)],[(String,String,Char,[String],Int,String)],[(String,String,[String],[String],String,String,String,String)],[(String,String,String,String,String,String)],String,[String],[[Char]],String)->([(String,Int,[String])],[(String,Int,String,[String])],([(String,Int,String,[Bool])],[(String,[String],[String],Int,Int)],[(String,Int,Bool)]),([(String,String,Char,[String],Int,String)],[(String,String,[String],[String],String,String,String,String)],[(String,String,String,String,String,String)]),String)
 vgcreateAux (pGroupList,pUserList, pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,vgName,physicalVolumeList,[], y) = (pGroupList,pUserList,(pStorageList,pVolumeGroupList,pLVolume),(pFileSystList,directoriesList,filesList), "Couldn't create Volume Group, expected: physical volume")
 vgcreateAux (pGroupList,pUserList, pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,vgName,physicalVolumeList,x:xs, y)
 	| x == "" = vgcreateAux (pGroupList,pUserList, pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,vgName,physicalVolumeList,xs, y)
+	--if the length of the storage list it's emty it means there is no storage devices created, so there is no storage device for created the vg
 	| (length pStorageList) == 0 = (pGroupList,pUserList,(pStorageList,pVolumeGroupList,pLVolume),(pFileSystList,directoriesList,filesList), "Couldn't create Volume Group, physical volume doesn't exists" )
-	| findStorage (pStorageList, x) && (length xs) >=1 = if head (sel4 (getDevice (pStorageList,x)))
+	--if the storage is found and there command list have more storage devices to add
+	| findStorage (pStorageList, x) && (length xs) >=1 = if head (sel4 (getDevice (pStorageList,x))) --verify if the storage device is managed by LVM
+															--add the storage the physicalvolumeList
 															then vgcreateAux (pGroupList,pUserList, pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,vgName,physicalVolumeList ++ [x],xs, y) 
 															else (pGroupList,pUserList,(pStorageList,pVolumeGroupList,pLVolume),(pFileSystList,directoriesList,filesList),"Couldn't create Volume Group, expected: physical volume") 
-	| null xs = if head (sel4 (getDevice (pStorageList,x)))
-															then vgcreateAux2 (pGroupList,pUserList, pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,vgName,physicalVolumeList ++ [x])
-															else (pGroupList,pUserList,(pStorageList,pVolumeGroupList,pLVolume),(pFileSystList,directoriesList,filesList), "Couldn't create Volume Group, expected: physical volume") 
+	--if the command list its empty there are no more storage devices to add															
+	| null xs = if head (sel4 (getDevice (pStorageList,x))) --verify if the storage is managed by LVM
+					--add the storage the physicalvolumeList
+					then vgcreateAux2 (pGroupList,pUserList, pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,vgName,physicalVolumeList ++ [x])
+					else (pGroupList,pUserList,(pStorageList,pVolumeGroupList,pLVolume),(pFileSystList,directoriesList,filesList), "Couldn't create Volume Group, expected: physical volume") 
 	| otherwise = (pGroupList,pUserList,(pStorageList,pVolumeGroupList,pLVolume),(pFileSystList,directoriesList,filesList), "Couldn't find: " ++ x)
 
 {-
+	-@brief This function add the volume group to the list of the volumeGroups
+	-@param pGroupList = list of all the group created
+	-@param pUserList = list of users
+	-@param pStorageLIst = list of storages
+	-@param pVolumeGroups = list of VG
+	-@param pLVolume = list of logival volume
+	-@param pFileSystList = list of file systems
+	-@param directoriesList = list of directories
+	-@param fileList = list of files
+	-@param physicalVolumeList final list of all the storage devices managed by LVM
 -}
 vgcreateAux2 (pGroupList,pUserList, pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,vgName,physicalVolumeList) = (pGroupList,pUserList, addVG (pStorageList, pVolumeGroupList,pLVolume, vgName,physicalVolumeList,physicalVolumeList,0),(pFileSystList,directoriesList,filesList),"")
 
@@ -94,11 +124,23 @@ addVG (pStorageList,pVolumeGroupList,pLVolume,vgName, physicalVolumeList,x:tmpLi
 
 ------------------------------------------VgReduce FUNCTIONS STARTS------------------------------------------------------------------------
 {-
+	-@brief This function reduce a volume group
+	-@param pGroupList = list of all the group created
+	-@param pUserList = list of users
+	-@param pStorageLIst = list of storages
+	-@param pVolumeGroups = list of VG
+	-@param pLVolume = list of logival volume
+	-@param pFileSystList = list of file systems
+	-@param directoriesList = list of directories
+	-@param fileList = list of files
+	-@param xs = list with the instruction => x = element of the instruction
 -}
-vgreduce :: ([(String,Int,[String])],[(String,Int,String,[String])],[(String,Int,String,[Bool])],[(String,[String],[String],Int,Int)],[(String,Int,Bool)],[(String,String,Char,[String],Int)],[(String,String,[String],[String],String,String,String,Bool)],[(String,String,String,String,String,String)],[[Char]],String)->([(String,Int,[String])],[(String,Int,String,[String])],([(String,Int,String,[Bool])],[(String,[String],[String],Int,Int)],[(String,Int,Bool)]),([(String,String,Char,[String],Int)],[(String,String,[String],[String],String,String,String,Bool)],[(String,String,String,String,String,String)]),String)
+vgreduce :: ([(String,Int,[String])],[(String,Int,String,[String])],[(String,Int,String,[Bool])],[(String,[String],[String],Int,Int)],[(String,Int,Bool)],[(String,String,Char,[String],Int,String)],[(String,String,[String],[String],String,String,String,String)],[(String,String,String,String,String,String)],[[Char]],String)->([(String,Int,[String])],[(String,Int,String,[String])],([(String,Int,String,[Bool])],[(String,[String],[String],Int,Int)],[(String,Int,Bool)]),([(String,String,Char,[String],Int,String)],[(String,String,[String],[String],String,String,String,String)],[(String,String,String,String,String,String)]),String)
 vgreduce (pGroupList,pUserList,pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,[],y) = (pGroupList,pUserList,(pStorageList,pVolumeGroupList,pLVolume),(pFileSystList,directoriesList,filesList), "Couldn't reduce Volume Group, expected: Volume Group name")
 vgreduce (pGroupList,pUserList,pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,x:xs,y)
 	| x == "" = vgreduce (pGroupList,pUserList,pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,xs,y)
+	--search for the vg to reduce and verify if there is the physical volume it wants to delete
+	-- x = vgName
 	| (findVG (pVolumeGroupList, x) && (length xs) == 1) = vgreduceAux (pGroupList,pUserList,pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,xs,x)
 	| otherwise = (pGroupList,pUserList,(pStorageList,pVolumeGroupList,pLVolume),(pFileSystList,directoriesList,filesList), "Couldn't find: " ++ x)
 
@@ -107,12 +149,16 @@ vgreduce (pGroupList,pUserList,pStorageList,pVolumeGroupList,pLVolume,pFileSystL
 vgreduceAux (pGroupList,pUserList,pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,[],vgName) = (pGroupList,pUserList,(pStorageList,pVolumeGroupList,pLVolume),(pFileSystList,directoriesList,filesList), "Couldn't reduce Volume Group, expected: physical name")
 vgreduceAux (pGroupList,pUserList,pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,x:xs,vgName)
 	| x == "" = vgreduceAux (pGroupList,pUserList,pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,xs,vgName)
-	| findStorage (pStorageList,x) = if (getVGFreeSize (pVolumeGroupList, vgName) > getStorageSize (pStorageList,x))
-										then (pGroupList, pUserList,(reduceVG (pStorageList,pVolumeGroupList,[],pLVolume,x,vgName)),(pFileSystList,directoriesList,filesList),"")
-										else (pGroupList,pUserList,(pStorageList,pVolumeGroupList,pLVolume),(pFileSystList,directoriesList,filesList), "Couldn't reduce Volume Group, there is not enough space")					
+	--x should be the physical volume name to reduce
+	| findStorage (pStorageList,x) = if verifyDevInVg (pVolumeGroupList,x) --verify if the storage is in the vg
+										then if (getVGFreeSize (pVolumeGroupList, vgName) > getStorageSize (pStorageList,x))--if there is enough free space 
+											then (pGroupList, pUserList,(reduceVG (pStorageList,pVolumeGroupList,[],pLVolume,x,vgName)),(pFileSystList,directoriesList,filesList),"")
+											else (pGroupList,pUserList,(pStorageList,pVolumeGroupList,pLVolume),(pFileSystList,directoriesList,filesList), "Couldn't reduce Volume Group, there is not enough space")
+										else (pGroupList,pUserList,(pStorageList,pVolumeGroupList,pLVolume),(pFileSystList,directoriesList,filesList), "Couldn't reduce Volume Group, " ++ x ++ " is not a physical volume of "++ vgName)									
 	| otherwise = (pGroupList,pUserList,(pStorageList,pVolumeGroupList,pLVolume),(pFileSystList,directoriesList,filesList), "Couldn't reduce Volume Group, " ++ x ++ " is not a physical volume of " ++ vgName)
 
 {-
+	-@brief this function reduce the size of the vg
 -}
 reduceVG (pStorageList,[],tmpVolumeGroupList,pLVolume,toDelete,vgName) = (pStorageList,tmpVolumeGroupList,pLVolume)
 reduceVG (pStorageList,tmp:pVolumeGroupList,tmpVolumeGroupList,pLVolume,toDelete,vgName)
@@ -121,6 +167,7 @@ reduceVG (pStorageList,tmp:pVolumeGroupList,tmpVolumeGroupList,pLVolume,toDelete
 
 
 {-
+	-@brief this function delete the physical volume from the vg
 -}
 deleteStorageFromVG ([], tmpList, toDelete) = tmpList
 deleteStorageFromVG (tmp:physicalVolumeList,tmpList,toDelete)
@@ -155,7 +202,7 @@ extendVG (pStorageList,tmpElement:pVolumeGroupList,tmpVolumeGroupList,pLVolume,s
 ------------------------------------------VLCREATE FUNCTIONS STARTS------------------------------------------------------------------------
 {-
 -}
-vlcreate :: ([(String,Int,[String])],[(String,Int,String,[String])],[(String,Int,String,[Bool])],[(String,[String],[String],Int,Int)],[(String,Int,Bool)],[(String,String,Char,[String],Int)],[(String,String,[String],[String],String,String,String,Bool)],[(String,String,String,String,String,String)],[[Char]],String)->([(String,Int,[String])],[(String,Int,String,[String])],([(String,Int,String,[Bool])],[(String,[String],[String],Int,Int)],[(String,Int,Bool)]),([(String,String,Char,[String],Int)],[(String,String,[String],[String],String,String,String,Bool)],[(String,String,String,String,String,String)]),String)
+vlcreate :: ([(String,Int,[String])],[(String,Int,String,[String])],[(String,Int,String,[Bool])],[(String,[String],[String],Int,Int)],[(String,Int,Bool)],[(String,String,Char,[String],Int,String)],[(String,String,[String],[String],String,String,String,String)],[(String,String,String,String,String,String)],[[Char]],String)->([(String,Int,[String])],[(String,Int,String,[String])],([(String,Int,String,[Bool])],[(String,[String],[String],Int,Int)],[(String,Int,Bool)]),([(String,String,Char,[String],Int,String)],[(String,String,[String],[String],String,String,String,String)],[(String,String,String,String,String,String)]),String)
 vlcreate (pGroupList,pUserList,pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,[],y) = (pGroupList,pUserList,(pStorageList,pVolumeGroupList,pLVolume),(pFileSystList,directoriesList,filesList), "Couldn't create Logic Volume, expected: lvcreate -L")
 vlcreate (pGroupList,pUserList,pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,x:xs,y)
 	| x == "" = vlcreate (pGroupList,pUserList,pStorageList,pVolumeGroupList,pLVolume,pFileSystList,directoriesList,filesList,xs,y)
@@ -210,6 +257,12 @@ findVG (pVolumeGroupList,pVG)
 	| null pVolumeGroupList = False
     | (pVG `elem` (generateVGNames pVolumeGroupList)) =  True
     | otherwise = False 
+
+verifyDevInVg :: ([(String,[String],[String],Int,Int)],String)->Bool
+verifyDevInVg ([],devName) = False
+verifyDevInVg (tmp:pVolumeGroupList, devName)
+	| (devName `elem` (sel2 tmp)) = True
+	| otherwise = verifyDevInVg (pVolumeGroupList,devName)
 
 findVL :: ([(String,Int,Bool)],String)->Bool
 findVL (pLVolume,lv)
